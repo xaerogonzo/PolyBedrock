@@ -1,0 +1,67 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # ── Stage 1: PolyBedrock's own suites ──────────────────────────────────────────
+  polybedrock:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install both packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e core -e ui pytest
+      - name: core
+        run: python -m pytest core/tests
+      - name: ui
+        run: python -m pytest ui/tests
+
+  # ── Stage 2: the consumers ──────────────────────────────────────────────────
+  #
+  # PolyBedrock is infrastructure: its own suite passing is not evidence that a
+  # change is safe. Consumers are pinned to the revisions PolyBedrock declares
+  # support for, NOT to master -- otherwise "PolyBedrock passes, PolyShield
+  # happened to pass today" tells you nothing about whether the shared package
+  # is compatible with the version PolyShield actually declares.
+  #
+  # PolyShield's suite must pass UNEDITED. A test that needs changing means an
+  # extraction was not behaviour-preserving (see docs/adr/0002).
+  consumers:
+    needs: polybedrock
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: PolyShield
+            repo: xaerogonzo/Polyshield-Antivirus
+            ref: master            # pin to a tag once PolyBedrock declares support
+            deps: requirements-ci.txt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: polybedrock
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.ref }}
+          path: consumer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install consumer deps
+        working-directory: consumer
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ${{ matrix.deps }}
+      - name: Install PolyBedrock under test
+        run: pip install -e polybedrock/core -e polybedrock/ui
+      - name: Run ${{ matrix.name }} tests
+        working-directory: consumer
+        run: python -m pytest

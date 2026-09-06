@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polybedrock-core"
+version = "0.1.0"
+description = "Windows platform substrate shared by the Forge suite — paths, settings, PowerShell, security posture, capabilities."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+# `polybedrock` is a PEP 420 namespace package: polybedrock-core contributes
+# polybedrock.*, polybedrock-ui contributes polybedrock.ui.*. Neither distribution may
+# ship src/polybedrock/__init__.py — adding one silently breaks the other's import.
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["polybedrock*"]
+namespaces = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
