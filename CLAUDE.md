@@ -80,7 +80,7 @@ until its consumers are:
 ```powershell
 cd "..\KicomAI_Project"; .\kicomav_env\Scripts\python.exe -m pytest        # 887, unedited
 cd "..\KicomAI_Project"; .\kicomav_env\Scripts\python.exe tools\uishot\__main__.py --check
-cd "..\PolyScour";       .\venv\Scripts\python.exe -m pytest               # 124
+cd "..\PolyScour";       .\venv\Scripts\python.exe -m pytest               # 126
 ```
 
 PolyShield's suite must pass **with no test edits**. A test that needs changing
