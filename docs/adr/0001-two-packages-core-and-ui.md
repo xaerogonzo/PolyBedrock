@@ -98,10 +98,38 @@ point instead of assuming it — a declared range only ever tested at one
 revision is a range in name only, and a full version × consumer × Python matrix
 is not worth building at two consumers.
 
-**Not yet done:** PolyShield still declares `polybedrock-core @ git+https://…`
-with no revision and no bound. Fixing that is a change to PolyShield's own
-requirements and belongs in its repository, with its 887-test suite run against
-the result; it is not something to slip into a PolyBedrock commit.
+### Addendum — PolyShield closes the same gap (2026-09-07)
+
+The paragraph that stood here said PolyShield still declared
+`polybedrock-core @ git+https://…` with no revision and no bound, and that
+fixing it belonged in its own repository. It now has: PolyShield pins all three
+of its declaration sites — `requirements.txt`, `requirements-ci.txt` and
+`build.ps1` `$RUNTIME_PKGS`, the last of which bakes the substrate into the
+interpreter that ships inside its installer — and its 896-test suite passes
+against the result with no existing test edited.
+
+The bound could not be written the way PolyScour writes it, and the reason is
+worth recording because it will recur for any consumer installing from git.
+PolyBedrock is not on PyPI, so it arrives as a PEP 508 **direct reference**, and
+a direct reference may not carry a version specifier:
+`polybedrock-core>=0.1,<0.2 @ git+https://...` does not parse. PolyScour can
+declare the range because it names the packages as ordinary dependencies;
+PolyShield cannot.
+
+So PolyShield asserts the range instead, in `tests/test_substrate_pin.py`,
+against the metadata of whatever is actually installed. That location is better
+than a declaration would have been, for a reason specific to this workflow: the
+`consumers` stage deliberately installs the substrate under test *over* whatever
+the consumer declared, which makes a consumer's own pin inert here. The
+assertion is the only thing left that can object — so a PolyBedrock bump past
+0.2 now turns the PolyShield job red on purpose instead of being discovered
+downstream. The PolyShield pin in the matrix was bumped to that revision in the
+same breath, because the gate does not exist until this repository checks out a
+consumer that carries it.
+
+The same test also guards the drift three copies of one URL invite: an unpinned
+site, a site that stopped declaring a package it should, or three sites naming
+different revisions.
 
 ### CI convergence
 
