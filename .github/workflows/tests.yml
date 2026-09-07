@@ -1,16 +1,28 @@
 name: tests
 
+# push and pull_request run the SAME job with the SAME conditions, on purpose.
+# A lenient job on push and a strict one on PRs is how a repo ends up with a
+# green push run sitting on top of a red pull_request run.
 on:
   push:
+    branches: [master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ── Stage 1: PolyBedrock's own suites ──────────────────────────────────────────
+  # ── Stage 1: PolyBedrock's own suites ──────────────────────────────────────
   polybedrock:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install both packages
@@ -25,10 +37,19 @@ jobs:
   # ── Stage 2: the consumers ──────────────────────────────────────────────────
   #
   # PolyBedrock is infrastructure: its own suite passing is not evidence that a
-  # change is safe. Consumers are pinned to the revisions PolyBedrock declares
-  # support for, NOT to master -- otherwise "PolyBedrock passes, PolyShield
-  # happened to pass today" tells you nothing about whether the shared package
-  # is compatible with the version PolyShield actually declares.
+  # change is safe. Both consumers run here, and both are pinned to a **commit**
+  # rather than to `master`.
+  #
+  # The pin is the point. Testing PolyBedrock@HEAD against consumer@master means
+  # two moving branches proving each other, which can go green for a pair of
+  # mutually-dependent changes that would not work against any released version
+  # of either -- and it makes a red run ambiguous between "the substrate broke
+  # the consumer" and "the consumer was already broken". A commit answers both.
+  #
+  # PolyBedrock carries no tags yet, so these are SHAs; they become tags when
+  # there are tags. **Bump them deliberately**, as the act of declaring support
+  # for a newer consumer revision -- not automatically, which would restore the
+  # moving target this exists to remove.
   #
   # PolyShield's suite must pass UNEDITED. A test that needs changing means an
   # extraction was not behaviour-preserving (see docs/adr/0002).
@@ -41,27 +62,48 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: master            # pin to a tag once PolyBedrock declares support
-            deps: requirements-ci.txt
+            ref: 98e783d41c3ec7f945fa763942a109c41011ecc1   # master, 2026-09-06
+            # Declares polybedrock-{core,ui} as git URLs, so its own deps must
+            # land before the local substrate overwrites them below.
+            install: pip install -r requirements-ci.txt
+          - name: PolyScour
+            repo: xaerogonzo/PolyScour
+            ref: 71de0fda86d2b9e42e755f86307051a93d4d3e42   # master, 2026-09-07
+            # Different shape: no requirements file, and its pyproject names
+            # polybedrock-core/-ui as ordinary dependencies. Neither is on an
+            # index, so the local substrate has to be installed first or pip
+            # goes looking for them on PyPI and fails to resolve.
+            install: pip install -e ../polybedrock/core -e ../polybedrock/ui -e .[dev]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: polybedrock
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: ${{ matrix.repo }}
           ref: ${{ matrix.ref }}
           path: consumer
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - name: Install consumer deps
+      - name: Install ${{ matrix.name }} deps
         working-directory: consumer
         run: |
           python -m pip install --upgrade pip
-          pip install -r ${{ matrix.deps }}
+          ${{ matrix.install }}
       - name: Install PolyBedrock under test
+        # Last, and unconditionally, for both consumers. A consumer may declare
+        # polybedrock from a git URL or an index; whatever it pulled, this is
+        # what overwrites it. Without this step the job could report a green
+        # consumer against a PolyBedrock that is not the one being changed --
+        # which is the one result this stage must never produce.
         run: pip install -e polybedrock/core -e polybedrock/ui
+      - name: Show which PolyBedrock is installed
+        # Cheap proof that the override worked. An editable install resolves to
+        # the checkout path; anything else here means the step above lost.
+        run: python -c "import polybedrock, polybedrock.ui; print(polybedrock.__path__, polybedrock.ui.__path__)"
       - name: Run ${{ matrix.name }} tests
         working-directory: consumer
+        env:
+          PYTHONIOENCODING: utf-8
         run: python -m pytest

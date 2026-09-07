@@ -39,6 +39,13 @@ PolyBedrock is infrastructure, so its own suite passing is not sufficient. A cha
 here is not green until its **consumers** pass too — see
 `.github/workflows/tests.yml` and `docs/adr/0001`.
 
+Both consumers run in that workflow, each **pinned to a commit** rather than to
+`master`. Two moving branches proving each other can go green for a pair of
+mutually-dependent changes that would not work against any released version of
+either — and a red run would not say whether the substrate broke the consumer or
+the consumer was already broken. The pins are bumped deliberately, as the act of
+declaring support for a newer consumer revision.
+
 ## What is here, and what deliberately is not
 
 | Module | Consumers | Notes |
