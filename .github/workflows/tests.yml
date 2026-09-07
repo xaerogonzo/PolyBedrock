@@ -98,10 +98,15 @@ jobs:
         # consumer against a PolyBedrock that is not the one being changed --
         # which is the one result this stage must never produce.
         run: pip install -e polybedrock/core -e polybedrock/ui
-      - name: Show which PolyBedrock is installed
-        # Cheap proof that the override worked. An editable install resolves to
-        # the checkout path; anything else here means the step above lost.
-        run: python -c "import polybedrock, polybedrock.ui; print(polybedrock.__path__, polybedrock.ui.__path__)"
+      - name: Prove the substrate under test is the one imported
+        # Not a print -- a gate. `polybedrock` is a PEP 420 namespace package,
+        # so a consumer's own git-URL dependency can leave a second copy in
+        # site-packages that keeps serving submodules after the editable
+        # install lands. Observed: PolyShield's job listed a hostedtoolcache
+        # portion *ahead* of the checkout in polybedrock.__path__. Reading a
+        # winner off that list is guesswork, so this imports a module from each
+        # distribution and asks where it actually came from.
+        run: python polybedrock/.github/scripts/assert_substrate.py polybedrock
       - name: Run ${{ matrix.name }} tests
         working-directory: consumer
         env:
