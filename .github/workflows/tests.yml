@@ -62,9 +62,18 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: 6e16dcad32689588c899ce9f480b27ef0ff14420   # master, 2026-09-07
-            # Declares polybedrock-{core,ui} as git URLs, so its own deps must
-            # land before the local substrate overwrites them below.
+            ref: 412538e41fdc3344486db07346147084063d8f43   # master, 2026-09-07
+            # Declares polybedrock-{core,ui} as git URLs -- now pinned to a
+            # commit on PolyShield's side too, so this step clones that
+            # revision before the local substrate overwrites it below. The
+            # overwrite is the point, and the assert step proves it won.
+            #
+            # This revision is the one that added PolyShield's own
+            # tests/test_substrate_pin.py, which asserts the substrate it
+            # imports is inside >=0.1,<0.2. That assertion runs against
+            # whatever this job installs -- so from here on, a PolyBedrock
+            # version bump past 0.2 turns this consumer red on purpose rather
+            # than being discovered downstream.
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
