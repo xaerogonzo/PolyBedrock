@@ -149,10 +149,28 @@ green, quickly, against code nobody is shipping. Nothing here reports the
 distance between a pin and its consumer's `master`, and that distance is the
 number worth seeing.
 
-Recorded rather than fixed: the remedy is a reporting step, not an automatic
-bump, and choosing its shape — a non-blocking CI annotation, a periodic check,
-or a line in the ecosystem health checklist — is a separate decision that should
-not be made in passing while bumping a pin.
+The remedy is a reporting step, not an automatic bump. Of the three shapes
+considered — a non-blocking CI annotation, a periodic check, or a line in the
+ecosystem health checklist — the checklist was chosen, and the checklist itself
+now exists as `docs/ECOSYSTEM_HEALTH.md` rather than as a table in a planning
+document nobody re-reads. `.github/scripts/pin_distance.py` prints the distance
+between each pin and its consumer's `master`.
+
+Deliberately **not** in CI. A blocking check would be an automatic bump wearing
+a different hat: the only way to make it green is to move the pin, which is the
+decision this repository insists on making by hand. A non-blocking annotation
+would be noise on every run that is correct — a pin is *meant* to lag while a
+consumer moves — and noise on every correct run is how a signal stops being
+read.
+
+Distance is information, so the script exits 0 whether or not the pins have
+drifted. It exits 1 only when it could not produce the report at all: an
+unavailable `gh`, or a workflow whose shape changed so the pins no longer parse.
+A check that could not run must never look like a check that passed — the same
+reasoning that made the consumer gate's own negative control worth running.
+
+Confirmed against the drift that prompted this, before being relied on: pointed
+at the pin as it stood, it reports *PolyScour: 5 commit(s) behind master*.
 
 ### CI convergence
 
