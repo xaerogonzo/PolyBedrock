@@ -62,13 +62,13 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: e3865c7914753b78fa650d05308fb9ce5848cec8   # master, 2026-09-07
+            ref: 6e16dcad32689588c899ce9f480b27ef0ff14420   # master, 2026-09-07
             # Declares polybedrock-{core,ui} as git URLs, so its own deps must
             # land before the local substrate overwrites them below.
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: 54af66a2c2f4fba9b86fe2602d52f0ad07e2a8ed   # master, 2026-09-07
+            ref: d2c3926077e1597315e125015f8e946957ea2dcc   # master, 2026-09-07
             # Different shape: no requirements file, and its pyproject names
             # polybedrock-core/-ui as ordinary dependencies. Neither is on an
             # index, so the local substrate has to be installed first or pip
