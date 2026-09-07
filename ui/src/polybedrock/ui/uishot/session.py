@@ -171,9 +171,33 @@ class TkSession:
 
     # ── Capturing ─────────────────────────────────────────────────────────────
 
+    def _stable_capture(self, attempts: int = 4):
+        """Capture the same frame twice and only accept it once it stops moving.
+
+        ``settle()`` drains Tk's event queue, which is necessary and not
+        sufficient: ``PrintWindow`` asks the window to paint itself, and under
+        load Windows can hand back a frame where labels are half-drawn. The
+        failure is silent and looks exactly like a UI change -- observed as
+        goldens "drifting" with text truncated to its first character, a
+        different scene each run.
+
+        Two identical consecutive frames is the cheapest honest evidence that
+        painting has finished. On the last attempt the frame is returned
+        anyway: a capture that never settles is still more useful to look at
+        than an exception, and a genuinely animating UI would otherwise never
+        photograph at all.
+        """
+        previous = None
+        for attempt in range(attempts):
+            self.settle()
+            image = capture_window(self.root.winfo_id(), PW_RENDERFULLCONTENT)
+            if previous is not None and image.tobytes() == previous:
+                return image
+            previous = image.tobytes()
+        return image
+
     def shot(self, name: str) -> Shot:
-        self.settle()
-        image = capture_window(self.root.winfo_id(), PW_RENDERFULLCONTENT)
+        image = self._stable_capture()
 
         # A hidden desktop inherits the session's screen metrics, so a window
         # larger than the desktop is silently clamped — the shot then shows a
