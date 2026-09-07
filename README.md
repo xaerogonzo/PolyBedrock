@@ -46,6 +46,12 @@ either — and a red run would not say whether the substrate broke the consumer 
 the consumer was already broken. The pins are bumped deliberately, as the act of
 declaring support for a newer consumer revision.
 
+Deliberate bumping means the pins can quietly fall behind, and a stale pin looks
+exactly like a healthy one: the consumer job is green, fast, and pointed at code
+nobody is shipping. `docs/ECOSYSTEM_HEALTH.md` is the checklist for a phase
+boundary or a release, and `.github/scripts/pin_distance.py` prints how far each
+pin is from its consumer's `master`.
+
 ## What is here, and what deliberately is not
 
 | Module | Consumers | Notes |

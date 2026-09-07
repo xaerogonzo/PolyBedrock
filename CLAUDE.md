@@ -102,6 +102,7 @@ behaviour-preserving *by photograph*.
 | The package split, versioning, or CI contract | **docs/adr/0001** |
 | A decision with a real alternative | a new **docs/adr/** entry |
 | Anything a consumer calls | **README.md** module table |
+| What to check at a phase boundary, or a consumer pin moving | **docs/ECOSYSTEM_HEALTH.md** |
 
 ## Project-specific notes
 
