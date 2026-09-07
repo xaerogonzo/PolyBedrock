@@ -33,27 +33,54 @@ from polybedrock.proc_control import resume_pid, suspend_pid
 pytestmark = pytest.mark.skipif(sys.platform != "win32",
                                 reason="NtSuspendProcess is Windows-only")
 
-# Writes "<own pid> <n>" to argv[1], incrementing as fast as it can be sampled.
-_COUNTER = textwrap.dedent("""
+# Writes "<own pid> <n>" lines to argv[1], one per tick.
+#
+# The handle is opened ONCE and the file only ever grows. Both obvious
+# alternatives are broken here, and both were tried:
+#
+#   open(path, "w") per tick   Truncates before writing. Freeze the process in
+#                              that window and the file stays empty for the
+#                              whole suspension -- the reader sees nothing at
+#                              all and the test fails against working code.
+#                              It flaked exactly that way on CI.
+#   write tmp + os.replace     Atomic on Windows, but MoveFileEx is refused
+#                              while the reader holds the destination open:
+#                              PermissionError, WinError 5.
+#
+# Appending to an already-open handle has neither problem. The single
+# truncation happens at startup, before anything is suspended.
+_COUNTER = textwrap.dedent(r"""
     import os, sys, time
-    path, n = sys.argv[1], 0
-    while True:
-        n += 1
-        with open(path, "w") as fh:
-            fh.write(f"{os.getpid()} {n}")
-        time.sleep(0.005)
+    path = sys.argv[1]
+    n = 0
+    with open(path, "w", buffering=1) as fh:
+        while True:
+            n += 1
+            fh.write(f"{os.getpid()} {n}\n")
+            time.sleep(0.005)
 """)
 
 
 def _read(path) -> tuple[int, int]:
-    """(pid, count), tolerating the torn read of a file rewritten under us."""
-    for _ in range(200):
+    """(pid, count) from the last COMPLETE line.
+
+    A trailing fragment without its newline is a write caught mid-flight and is
+    ignored rather than parsed. Retries only while the child has not yet
+    produced a first line.
+    """
+    for _ in range(400):
         try:
-            parts = path.read_text().split()
-            if len(parts) == 2:
-                return int(parts[0]), int(parts[1])
-        except (OSError, ValueError):
-            pass
+            text = path.read_text()
+        except OSError:
+            text = ""
+        cut = text.rfind("\n")
+        if cut != -1:
+            last = text[:cut].rsplit("\n", 1)[-1].split()
+            if len(last) == 2:
+                try:
+                    return int(last[0]), int(last[1])
+                except ValueError:
+                    pass
         time.sleep(0.01)
     raise AssertionError(f"never read a value from {path}")
 
@@ -78,7 +105,7 @@ def _moves(path, from_: int, timeout: float = 5.0) -> bool:
 
 @pytest.fixture
 def counter(tmp_path):
-    """A live child incrementing a file, yielded as (worker_pid, path).
+    """A live child appending to a file, yielded as (worker_pid, path).
 
     The PID is the one the child reports, not ``Popen.pid`` — see the module
     docstring for why that distinction is the whole point of this fixture.
