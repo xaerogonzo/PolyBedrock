@@ -116,12 +116,11 @@ there did.**
 - **Why generic:** freezing a process without killing it is a property of
   Windows, not of a security product. `NtSuspendProcess`/`NtResumeProcess` are
   the same pair Process Explorer's "Suspend" uses.
-- **Current consumers:** PolyShield (its cross-engine scan pause) today;
-  PolyScour's Game Mode is the second, landing immediately after this and
-  before the pin that gates PolyScour is bumped to a revision using it. Stated
-  that way rather than as a fait accompli: gate #4 asks whether a second
-  consumer *actually exists*, and until that PR merges the honest answer is
-  "it is being written", not "yes".
+- **Current consumers:** PolyShield (its cross-engine scan pause) and
+  PolyScour (Game Mode). Both are real and both are pinned in this repository's
+  consumer gate. This bullet said "it is being written" while that was true --
+  gate #4 asks whether a second consumer *actually exists*, and answering it
+  with an intention would have made the gate ceremonial.
 - **Duplication reduced:** yes — PolyScour would otherwise carry a second copy
   of the same ctypes handle dance, including the `finally: CloseHandle` that is
   easy to omit and impossible to notice omitting.

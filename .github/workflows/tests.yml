@@ -68,7 +68,7 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: 69e935959dd904ae2363d9d6c952491e19729ee9   # master, 2026-09-07
+            ref: 54af66a2c2f4fba9b86fe2602d52f0ad07e2a8ed   # master, 2026-09-07
             # Different shape: no requirements file, and its pyproject names
             # polybedrock-core/-ui as ordinary dependencies. Neither is on an
             # index, so the local substrate has to be installed first or pip
