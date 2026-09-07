@@ -55,6 +55,7 @@ declaring support for a newer consumer revision.
 | `polybedrock.settings` | PolyShield, PolyScour | Atomic writes, cross-process file lock |
 | `polybedrock.paths` | PolyScour | Generic half only — see `docs/adr/0002` |
 | `polybedrock.proc_control` | PolyShield, PolyScour | Suspend / resume a process by PID |
+| `polybedrock.startup` | PolyShield, PolyScour | What runs at boot. **Reads only** |
 | `polybedrock.capabilities` | PolyScour | Observational probes |
 | `polybedrock.ui.theme` | PolyShield, PolyScour | 5 palettes, live font propagation |
 | `polybedrock.ui.uishot` | PolyShield, PolyScour | Headless GUI capture + golden-image diffing |
