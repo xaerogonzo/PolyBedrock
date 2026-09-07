@@ -131,6 +131,29 @@ The same test also guards the drift three copies of one URL invite: an unpinned
 site, a site that stopped declaring a package it should, or three sites naming
 different revisions.
 
+### The pins drift, and nothing here notices
+
+Bumping the PolyShield pin surfaced that the **PolyScour pin had been stale
+since the commit that introduced it**: two PolyScour revisions — its threat
+model and its elevated helper — merged without this repository ever validating
+the substrate against them. The gate had not failed; it had simply been aimed at
+an older revision, and a green run says nothing about the difference.
+
+That is the cost of "bump deliberately", and the decision stands: automating the
+bump would restore the moving target pinning exists to remove, and a pin that
+advances on its own is `ref: master` with extra steps.
+
+But *deliberate* was implemented as *remembered*, which is not the same thing. A
+stale pin is invisible in exactly the way a red run is not — the consumer job is
+green, quickly, against code nobody is shipping. Nothing here reports the
+distance between a pin and its consumer's `master`, and that distance is the
+number worth seeing.
+
+Recorded rather than fixed: the remedy is a reporting step, not an automatic
+bump, and choosing its shape — a non-blocking CI annotation, a periodic check,
+or a line in the ecosystem health checklist — is a separate decision that should
+not be made in passing while bumping a pin.
+
 ### CI convergence
 
 PolyShield's workflow has been the de-facto template — PolyScour's was brought
