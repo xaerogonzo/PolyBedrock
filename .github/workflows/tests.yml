@@ -62,7 +62,7 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: 98e783d41c3ec7f945fa763942a109c41011ecc1   # master, 2026-09-06
+            ref: e3865c7914753b78fa650d05308fb9ce5848cec8   # master, 2026-09-07
             # Declares polybedrock-{core,ui} as git URLs, so its own deps must
             # land before the local substrate overwrites them below.
             install: pip install -r requirements-ci.txt
