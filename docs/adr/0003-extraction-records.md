@@ -105,12 +105,74 @@ has no UI imports, so the move is mechanical.
 
 ---
 
+## Moved in Stage 2
+
+### `polybedrock.proc_control` (2026-09-07)
+
+The row below said this moves "when PolyScour 0.2 needs `suspend_pid`/`resume_pid`".
+Game Mode is that consumer, so it moved — and **only the two functions named
+there did.**
+
+- **Why generic:** freezing a process without killing it is a property of
+  Windows, not of a security product. `NtSuspendProcess`/`NtResumeProcess` are
+  the same pair Process Explorer's "Suspend" uses.
+- **Current consumers:** PolyShield (its cross-engine scan pause) today;
+  PolyScour's Game Mode is the second, landing immediately after this and
+  before the pin that gates PolyScour is bumped to a revision using it. Stated
+  that way rather than as a fait accompli: gate #4 asks whether a second
+  consumer *actually exists*, and until that PR merges the honest answer is
+  "it is being written", not "yes".
+- **Duplication reduced:** yes — PolyScour would otherwise carry a second copy
+  of the same ctypes handle dance, including the `finally: CloseHandle` that is
+  easy to omit and impossible to notice omitting.
+- **API is capability-oriented:** `suspend_pid(pid)` / `resume_pid(pid)`,
+  answering `bool`. Failure is a return value rather than an exception, because
+  every failure mode is ordinary: the process exited, it is protected, or the
+  caller lacks the right.
+- **Keeping it in the app would be worse:** PolyScour cannot import PolyShield.
+
+**`watch_pause_event` deliberately stayed behind.** It is generic in *shape* —
+it takes a `subprocess.Popen` and a `threading.Event` — but it encodes
+PolyShield's scan-pause convention, its only caller is `clamav_engine`, and
+PolyScour's Game Mode does not want it: Game Mode suspends *other people's*
+processes, it does not sync its own subprocess to an event. Moving it would
+have failed gate #4 (extracting it reduces no duplication) while looking like
+progress. The gate exists to refuse exactly that.
+
+So PolyShield's `ui.core.proc_pause` is **not** an aliased module like
+`ps_run`; it re-exports the two names and keeps its own function. That
+distinction is load-bearing rather than stylistic: `test_scan_control.py` does
+`monkeypatch.setattr(proc_pause, "suspend_pid", fake)` and expects
+`watch_pause_event`'s inner loop to call the fake. A `from ... import` binding
+puts the name in that module's globals, which is what the loop resolves at call
+time, so the patch lands. Aliasing would also have worked — but only by taking
+`watch_pause_event` along with it.
+
+**Verified behaviour-preserving.** PolyShield's suite passes **887, unedited**.
+
+**What the extraction's own tests found.** PolyBedrock's tests for this spawn a
+real child, freeze it, and assert the counter *stops* — a bogus-PID test would
+pass against functions that do nothing. Written the obvious way that test failed
+against working code: the interpreter it spawns re-execs, so `Popen.pid` was a
+launcher and the counter kept climbing while the launcher sat frozen. The
+functions were right; the aim was wrong. It is recorded in the module docstring
+because a consumer pointing this at a program a user launched hits the same
+thing, and resolving a launcher to its worker is targeting — which is policy,
+which belongs to the application.
+
+**Nuitka.** `polybedrock.proc_control` is named in both PolyShield build targets.
+The editable finder resolves at import time, so a module Nuitka cannot see
+statically compiles fine and then fails to start — the failure class
+`--include-package=ui.core` already exists to prevent.
+
+---
+
 ## Deliberately **not** moved
 
 | Module | Gate failure | Moves when |
 |---|---|---|
 | `paths` (PolyShield's full module) | Not behaviour-preserving; also encodes PolyShield's staged-runtime layout | Stage 2 — see ADR 0002 |
-| `proc_pause` | Pure and genuinely generic, but **zero second consumers today** (gate #4) | PolyScour 0.2 — Game Mode needs `suspend_pid`/`resume_pid` |
+| `proc_pause.watch_pause_event` | Generic in shape, but encodes PolyShield's scan-pause convention and has **one caller** (gate #4) | If a second consumer wants a Popen synced to an Event — Game Mode does not |
 | `startup_scanner` | Same — zero second consumers today | PolyScour 0.2 — Startup Manager |
 | `scheduler` | Depends on `paths.script_launch_argv`; encodes PolyShield's staged-runtime packaging (gate #3) | If PolyScour ever schedules, and only with argv passed in rather than imported |
 | `shell_ext` | Depends on `paths.app_launch_argv`; same problem | Same |
