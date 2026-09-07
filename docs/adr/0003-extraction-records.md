@@ -166,13 +166,60 @@ statically compiles fine and then fails to start — the failure class
 
 ---
 
+### `polybedrock.startup` (2026-09-07)
+
+- **Why generic:** the registry Run keys and the Startup folders are Windows
+  mechanisms. "What runs when this machine starts" is not a security question
+  or a maintenance question; it is a fact about the machine that both products
+  need.
+- **Current consumers:** PolyShield (scans startup targets) and PolyScour
+  (Startup Manager).
+- **Duplication reduced:** substantially, and the valuable part is not the
+  enumeration. `_extract_path` looks trivial and is not -- its docstring records
+  three ways an earlier version was wrong, each failing *silently* by resolving
+  to a path that did not exist, which for an autoruns scanner means quietly not
+  scanning where persistence lives. PolyScour would have written that function
+  again and got it wrong in the same ways.
+- **API is capability-oriented:** two views of one walk.
+  `enumerate_startup_items()` keeps the dict shape PolyShield depends on;
+  `iter_run_entries()` returns `RunEntry`, carrying hive / key path / value
+  name. PolyScour needed the second because it intends to *act* on an entry
+  later, and a display string like `"Registry: HKCU\...\Run"` cannot be turned
+  back into a key. An index into the list is not an identity at all --
+  enumeration order is not stable, so "the third one" may be a different entry
+  by the time anyone clicks.
+- **Keeping it in the app would be worse:** PolyScour cannot import PolyShield.
+
+**It reads and never writes.** Nothing here disables, enables or deletes an
+entry. Changing what runs on someone's machine is a decision with an owner, and
+the owner is the application, where it can be gated by that application's
+policy, recorded in its ledger and undone. A substrate that could disable
+autoruns would put that power somewhere no product is accountable for it.
+
+**Whole-module alias, and forced rather than tidy.** PolyShield's tests do
+`monkeypatch.setattr(ss, "winreg", fake)` plus `_RUN_KEYS` and
+`_STARTUP_FOLDERS`, and expect `enumerate_startup_items()` to read all three. A
+re-export would leave the function reading this package's globals while the
+patches landed on PolyShield's module -- silently, with the tests then passing
+against the real registry.
+
+**`get_scannable_paths` travelled as a passenger.** It filters startup items to
+existing files for PolyShield's scanner and has no second consumer. It moved
+because the alias moves the whole module, not because it cleared gate #4. Said
+plainly here rather than retrofitting a justification: the honest record is that
+the module boundary decided this one, and if a third consumer ever wants a
+narrower module it is a cheap split.
+
+**Verified behaviour-preserving.** PolyShield's suite passes **887, unedited**.
+
+---
+
 ## Deliberately **not** moved
 
 | Module | Gate failure | Moves when |
 |---|---|---|
 | `paths` (PolyShield's full module) | Not behaviour-preserving; also encodes PolyShield's staged-runtime layout | Stage 2 — see ADR 0002 |
 | `proc_pause.watch_pause_event` | Generic in shape, but encodes PolyShield's scan-pause convention and has **one caller** (gate #4) | If a second consumer wants a Popen synced to an Event — Game Mode does not |
-| `startup_scanner` | Same — zero second consumers today | PolyScour 0.2 — Startup Manager |
 | `scheduler` | Depends on `paths.script_launch_argv`; encodes PolyShield's staged-runtime packaging (gate #3) | If PolyScour ever schedules, and only with argv passed in rather than imported |
 | `shell_ext` | Depends on `paths.app_launch_argv`; same problem | Same |
 | `quarantine` | AV-specific semantics (threat name, restore-to-original). PolyScour's staged-deletion vault is a different concept wearing similar clothes | Possibly never; PolyScour's `vault` lives in PolyScour until a second consumer appears |
