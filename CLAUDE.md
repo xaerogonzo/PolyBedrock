@@ -57,6 +57,7 @@ core/src/polybedrock/
 ├── settings.py      Atomic write + cross-process lock; takes path AND defaults
 ├── ps_run.py        Safe PowerShell invocation
 ├── win_security.py  Security posture, device security, system health (922 ln)
+├── proc_control.py  Suspend/resume by PID. Targeting is NOT its job
 └── capabilities.py  Observational probes — no side effects, ever
 ui/src/polybedrock/ui/
 ├── theme.py         5 palettes, live font propagation
