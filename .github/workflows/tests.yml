@@ -77,7 +77,15 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: 6c77e9861ecf45c3f4d1b41eb8d72af603013155   # master, 2026-09-07
+            ref: c60e4defdd6a57302180496c4d013c7692bb5660   # master, 2026-09-08
+            # Covers PolyScour #8, #9 and #10: the elevated helper
+            # becomes reachable (a batched delete taking a rule id
+            # and no path), the vault decision superseding its ADR
+            # 0001, and a flaky-test fix.
+            #
+            # It consumes nothing new from polybedrock. The reason
+            # to move is that the old pin was validating none of it:
+            # seven commits, including a new privileged code path.
             # Different shape: no requirements file, and its pyproject names
             # polybedrock-core/-ui as ordinary dependencies. Neither is on an
             # index, so the local substrate has to be installed first or pip
