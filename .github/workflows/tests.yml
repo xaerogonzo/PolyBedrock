@@ -77,19 +77,17 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: c60e4defdd6a57302180496c4d013c7692bb5660   # master, 2026-09-08
-            # Covers PolyScour #8, #9 and #10: the elevated helper
-            # becomes reachable (a batched delete taking a rule id
-            # and no path), the vault decision superseding its ADR
-            # 0001, and a flaky-test fix.
+            ref: 3009778ea6caf9f4816145ee144d20c8b99eba7d   # master, 2026-09-08
+            # Covers PolyScour #11-#16: packaging, the installer, the
+            # Game Mode recovery supervisor, and the first REAL build --
+            # which found that sys.executable under Nuitka onefile names
+            # a python.exe in a user-writable temp directory, and that is
+            # what was being elevated (their THREAT_MODEL T23).
             #
-            # It consumes nothing new from polybedrock. The reason
-            # to move is that the old pin was validating none of it:
-            # seven commits, including a new privileged code path.
-            # Different shape: no requirements file, and its pyproject names
-            # polybedrock-core/-ui as ordinary dependencies. Neither is on an
-            # index, so the local substrate has to be installed first or pip
-            # goes looking for them on PyPI and fails to resolve.
+            # Still consumes nothing new from polybedrock. What changed is
+            # that this consumer now has a compiled artifact at all, so
+            # 'the substrate works for PolyScour' has started meaning
+            # something a build could contradict.
             install: pip install -e ../polybedrock/core -e ../polybedrock/ui -e .[dev]
     steps:
       - uses: actions/checkout@v7
