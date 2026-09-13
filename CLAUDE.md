@@ -1,4 +1,4 @@
-@D:\Claude Co worker\Token Save Manager Source\templates\project-baseline.md
+@project-baseline.md
 
 # PolyBedrock — Claude Project Instructions
 
