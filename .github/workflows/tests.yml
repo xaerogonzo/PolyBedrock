@@ -77,17 +77,25 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: 3009778ea6caf9f4816145ee144d20c8b99eba7d   # master, 2026-09-08
-            # Covers PolyScour #11-#16: packaging, the installer, the
-            # Game Mode recovery supervisor, and the first REAL build --
-            # which found that sys.executable under Nuitka onefile names
-            # a python.exe in a user-writable temp directory, and that is
-            # what was being elevated (their THREAT_MODEL T23).
+            ref: c436a81cdbbe51977e17df583702dad3ee0a029e   # master, 2026-09-21
+            # Covers PolyScour #17-#23: the installed build measured rather
+            # than argued about, the Storage Analyser, its history (what
+            # changed since the last scan), the source launcher, and the
+            # Settings and Clean touches that ride with them.
             #
-            # Still consumes nothing new from polybedrock. What changed is
-            # that this consumer now has a compiled artifact at all, so
-            # 'the substrate works for PolyScour' has started meaning
-            # something a build could contradict.
+            # Consumes nothing new from polybedrock. The import surface is
+            # the same set of modules as the previous pin; the only added
+            # line is `from polybedrock.ui import theme` in the Storage
+            # screen, and the other views already import from polybedrock.ui.
+            # The Storage work reads the disk through psutil, ctypes and the
+            # stdlib, and keeps its history in its own SQLite file, so this
+            # bump validates PolyScour's growth against the substrate more
+            # than it validates the substrate.
+            #
+            # This pin was 6 commits behind PolyScour master when the PR was
+            # opened (`.github/scripts/pin_distance.py`, the number
+            # docs/ECOSYSTEM_HEALTH.md says to look at) and moved to the merge
+            # tip before it landed, so it does not begin already stale.
             install: pip install -e ../polybedrock/core -e ../polybedrock/ui -e .[dev]
     steps:
       - uses: actions/checkout@v7
