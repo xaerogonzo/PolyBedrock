@@ -62,6 +62,7 @@ pin is from its consumer's `master`.
 | `polybedrock.paths` | PolyScour | Generic half only — see `docs/adr/0002` |
 | `polybedrock.proc_control` | PolyShield, PolyScour | Suspend / resume a process by PID |
 | `polybedrock.startup` | PolyShield, PolyScour | What runs at boot. **Reads only** |
+| `polybedrock.schtasks_run` | PolyShield, PolyScour | Invoke `schtasks.exe` with no console window. Task naming, elevation and verification stay app-owned |
 | `polybedrock.capabilities` | PolyScour | Observational probes |
 | `polybedrock.ui.theme` | PolyShield, PolyScour | 5 palettes, live font propagation |
 | `polybedrock.ui.uishot` | PolyShield, PolyScour | Headless GUI capture + golden-image diffing |

@@ -214,14 +214,69 @@ narrower module it is a cheap split.
 
 ---
 
+### `polybedrock.schtasks_run` (2026-09-30)
+
+The `scheduler` row below said this moves "if PolyScour ever schedules, and
+only with argv passed in rather than imported." PolyScour's scheduled
+cleaning (`scheduling/task.py`) is that consumer now — but it was built
+independently of PolyShield's `scheduler.py`, and the two disagree on task
+naming, elevation (`/rl LIMITED` vs `/rl HIGHEST`), verification strategy, and
+exit-code handling. None of that is a shared capability; it is each product's
+own policy. **Only the raw invocation moved** — the same discipline
+`proc_control` applied when `watch_pause_event` stayed behind.
+
+- **Why generic:** launching `schtasks.exe` with no console window, a bounded
+  timeout, and `check=False` is a Windows mechanism, not a scheduling policy.
+  Both products had carried a byte-for-byte-equivalent wrapper around exactly
+  that, with neither test suite exercising the other's.
+- **Current consumers:** PolyShield (`ui/core/scheduler.py`, its `_run` helper)
+  and PolyScour (`scheduling/task.py`, its `_run_schtasks` helper). Both real,
+  both pinned in this repository's consumer gate.
+- **Duplication reduced:** the mechanism, not the policy — `[exe, *args]` with
+  `creationflags=CREATE_NO_WINDOW`, `shell=False`, `check=False`, and a
+  timeout that raises rather than hangs.
+- **API is capability-oriented, with the actual disagreements left as plain
+  parameters rather than hidden defaults:** `run_schtasks(args, *, exe,
+  timeout, text, stdin)`. PolyShield calls it with its bare `"schtasks"`
+  (relies on PATH; its own test suite asserts the literal argv reaching
+  `subprocess.run`, so changing that was not an option), `text=True`, and
+  `stdin=DEVNULL`. PolyScour calls it with the full path it resolves under
+  `%SystemRoot%` and reads raw bytes to decode with the OEM codepage itself.
+  Neither default leaked into the other's call — that was the condition for
+  this counting as behaviour-preserving rather than a redesign.
+- **Keeping it in each app would be worse:** both products had already found
+  (and in PolyShield's case, documented via `integration._sc`'s WinError 6
+  story) the same console-window and stdin-inheritance traps independently.
+  A third Windows application invoking `schtasks.exe` from a GUI process would
+  hit them too.
+
+**Task naming, elevation, ownership-by-path, and `/query /xml` corruption
+avoidance all stay in each application**, same as `proc_control` left
+`watch_pause_event` behind. PolyScour's `verify()` (PowerShell-based, because
+of a measured `schtasks /query /xml` text-corruption bug — see its own
+`docs/gotchas/windows-subprocess.md`) and PolyShield's CSV-parsing
+`get_task_info()` are two different answers to "is this task real," and
+unifying them would have been a redesign wearing an extraction's clothes.
+
+**Verified behaviour-preserving.** PolyShield's suite passes unedited (same
+887-class suite as the prior extractions, now with four new
+`test_schtasks_run.py` cases added on the PolyBedrock side). PolyScour's
+`tests/test_scheduling_task.py` (7 tests, against real throwaway scheduled
+tasks) passes unedited. PolyScour's unrelated `test_uishot.py` golden-drift
+failure was confirmed pre-existing by re-running it with this change stashed
+out — seven scenes drift identically with or without it, none of them
+scheduling-related.
+
+---
+
 ## Deliberately **not** moved
 
 | Module | Gate failure | Moves when |
 |---|---|---|
 | `paths` (PolyShield's full module) | Not behaviour-preserving; also encodes PolyShield's staged-runtime layout | Stage 2 — see ADR 0002 |
 | `proc_pause.watch_pause_event` | Generic in shape, but encodes PolyShield's scan-pause convention and has **one caller** (gate #4) | If a second consumer wants a Popen synced to an Event — Game Mode does not |
-| `scheduler` | Depends on `paths.script_launch_argv`; encodes PolyShield's staged-runtime packaging (gate #3) | If PolyScour ever schedules, and only with argv passed in rather than imported |
-| `shell_ext` | Depends on `paths.app_launch_argv`; same problem | Same |
+| `scheduler` (task naming, elevation, verification, ownership-by-path) | Each product's own policy over the shared primitive (gate #3) — see `polybedrock.schtasks_run` above for what did move | Not foreseen — the two products' scheduling models have genuinely diverged |
+| `shell_ext` | Depends on `paths.app_launch_argv`; encodes PolyShield's staged-runtime packaging (gate #3) | If PolyScour ever registers a context-menu entry, and only with argv passed in rather than imported |
 | `quarantine` | AV-specific semantics (threat name, restore-to-original). PolyScour's staged-deletion vault is a different concept wearing similar clothes | Possibly never; PolyScour's `vault` lives in PolyScour until a second consumer appears |
 | `ignore_list` | Pulls `service_client` and `pattern_stats` — PolyShield's service and false-positive tracking (gate #1, #5) | Not foreseen |
 | `intel_updater` | Pulls `yara_engine` and `tools.update_intelligence` (gate #1, #5) | Not foreseen; PolyScour copies the *pattern* for rule updates, not the code |
