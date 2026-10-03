@@ -77,25 +77,34 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: c436a81cdbbe51977e17df583702dad3ee0a029e   # master, 2026-09-21
-            # Covers PolyScour #17-#23: the installed build measured rather
-            # than argued about, the Storage Analyser, its history (what
-            # changed since the last scan), the source launcher, and the
-            # Settings and Clean touches that ride with them.
+            ref: 302bb6d0bfbe58a82c13a396a8128f5a708ed438   # master, 2026-09-30
+            # Covers PolyScour c436a81..302bb6d: 36 commits behind master when
+            # this PR was opened (`.github/scripts/pin_distance.py`, the number
+            # docs/ECOSYSTEM_HEALTH.md says to look at). That is a long way for
+            # a pin to have drifted, and the size of it is the reason this PR
+            # exists rather than a reason to trust it: it is the amount of
+            # PolyScour this repository had not validated.
             #
-            # Consumes nothing new from polybedrock. The import surface is
-            # the same set of modules as the previous pin; the only added
-            # line is `from polybedrock.ui import theme` in the Storage
-            # screen, and the other views already import from polybedrock.ui.
-            # The Storage work reads the disk through psutil, ctypes and the
-            # stdlib, and keeps its history in its own SQLite file, so this
-            # bump validates PolyScour's growth against the substrate more
-            # than it validates the substrate.
+            # Unlike the last bump, this range DOES move the import surface.
+            # Newly consumed from polybedrock, all of it already at master:
+            #   * polybedrock.schtasks_run.run_schtasks -- scheduled cleaning
+            #     (scheduling/task.py; its own tests run against real
+            #     throwaway scheduled tasks), the helper added in 2801424
+            #   * polybedrock.startup.RunEntry and extract_path -- the
+            #     view-only "everything else that starts with Windows" list,
+            #     and the 32-bit machine-wide Run key's own approval record
+            #     (the HKLM_WOW6432 hive_name)
+            #   * polybedrock.ps_run.run_ps from scheduling/task.py, for
+            #     Get-ScheduledTask verification
+            # The rest of the range -- Recycle Bin cleaning, pip/npm/Cargo
+            # cache rules, the installed-program uninstaller, the elevated
+            # request being cancellable, release 0.3.0 -- is PolyScour's own.
             #
-            # This pin was 6 commits behind PolyScour master when the PR was
-            # opened (`.github/scripts/pin_distance.py`, the number
-            # docs/ECOSYSTEM_HEALTH.md says to look at) and moved to the merge
-            # tip before it landed, so it does not begin already stale.
+            # Known and NOT a regression: PolyScour's tests/test_uishot.py
+            # golden comparison drifts on the maintainer's machine with or
+            # without these changes (font rasterisation and DPI). If this job
+            # reports it, compare against a run at the previous pin before
+            # attributing it to the substrate.
             install: pip install -e ../polybedrock/core -e ../polybedrock/ui -e .[dev]
     steps:
       - uses: actions/checkout@v7
