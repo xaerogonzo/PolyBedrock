@@ -62,18 +62,38 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: 412538e41fdc3344486db07346147084063d8f43   # master, 2026-09-07
+            ref: 8cf7dda701a639c4db19a3b7ce98cb87b3961fd2   # master, 2026-10-05
             # Declares polybedrock-{core,ui} as git URLs -- now pinned to a
             # commit on PolyShield's side too, so this step clones that
             # revision before the local substrate overwrites it below. The
             # overwrite is the point, and the assert step proves it won.
             #
-            # This revision is the one that added PolyShield's own
-            # tests/test_substrate_pin.py, which asserts the substrate it
-            # imports is inside >=0.1,<0.2. That assertion runs against
-            # whatever this job installs -- so from here on, a PolyBedrock
-            # version bump past 0.2 turns this consumer red on purpose rather
-            # than being discovered downstream.
+            # PolyShield's own tests/test_substrate_pin.py asserts the
+            # substrate it imports is inside >=0.1,<0.2. That assertion runs
+            # against whatever this job installs -- so a PolyBedrock version
+            # bump past 0.2 turns this consumer red on purpose rather than
+            # being discovered downstream.
+            #
+            # Covers PolyShield 412538e..8cf7dda (6 commits behind master when
+            # this PR was opened, per `.github/scripts/pin_distance.py`).
+            # The one that matters here is aab3a72: scheduler.py now imports
+            # `polybedrock.schtasks_run.run_schtasks`, the helper added in
+            # 2801424. Nothing else in the range changes the import surface;
+            # the rest is the service start-type fix, autostart and the
+            # Add/Remove Programs entry (pure PolyShield), and the
+            # TokenSave Manager files. 9c8cc8b also moves PolyShield's own
+            # pin to 2801424 and adds schtasks_run to both Nuitka targets.
+            #
+            # 8cf7dda is the revision that understands the overlay below. The
+            # pin test added in c4ffe71 failed every run of this job (an
+            # editable substrate under CI) until PolyShield learned to be told
+            # the overlay is deliberate -- see POLYBEDROCK_SUBSTRATE_OVERLAY in
+            # the test step. Pinning 9c8cc8b would be red for that reason.
+            #
+            # Expected to stay green with PolyShield's suite UNEDITED -- the
+            # extraction was behaviour-preserving, and this is where that
+            # claim gets checked against a PolyBedrock that is not the
+            # developer's editable checkout.
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
@@ -134,4 +154,10 @@ jobs:
         working-directory: consumer
         env:
           PYTHONIOENCODING: utf-8
+          # This job installs polybedrock editable over the consumer's pin on
+          # purpose (the step above). PolyShield's pin test fails any editable
+          # substrate under CI unless told the overlay is deliberate; declared
+          # here, not inferred, so PolyShield's own CI still fails on one.
+          # Harmless to PolyScour, which does not read it.
+          POLYBEDROCK_SUBSTRATE_OVERLAY: "1"
         run: python -m pytest
