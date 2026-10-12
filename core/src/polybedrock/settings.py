@@ -224,8 +224,16 @@ def _read_disk() -> dict:
                   _SETTINGS_FILE, exc)
         return {}
 
+    # utf-8-sig, not utf-8: it strips a leading byte-order mark and is otherwise
+    # identical, so a BOM-less file (which is all this module ever writes) reads
+    # exactly as before. Strict "utf-8" treats the BOM as a character and
+    # json.loads then refuses it, so a perfectly valid file was set aside as
+    # .corrupt and its settings silently replaced by defaults. Windows tools put
+    # a BOM there routinely -- Windows PowerShell 5.1's `Set-Content -Encoding
+    # UTF8` does, and so does any hand-edit in an editor that defaults to one --
+    # and this module is Windows-only. The next write drops the BOM again.
     try:
-        data = json.loads(raw.decode("utf-8"))
+        data = json.loads(raw.decode("utf-8-sig"))
     except (ValueError, UnicodeDecodeError):
         _preserve_corrupt(raw)
         return {}
