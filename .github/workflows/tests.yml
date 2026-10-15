@@ -62,7 +62,7 @@ jobs:
         include:
           - name: PolyShield
             repo: xaerogonzo/Polyshield-Antivirus
-            ref: 8cf7dda701a639c4db19a3b7ce98cb87b3961fd2   # master, 2026-10-05
+            ref: f2ba72d8fe90fa3a3146c7390a8f2832fcfcb586   # master, 2026-10-15
             # Declares polybedrock-{core,ui} as git URLs -- now pinned to a
             # commit on PolyShield's side too, so this step clones that
             # revision before the local substrate overwrites it below. The
@@ -74,26 +74,24 @@ jobs:
             # bump past 0.2 turns this consumer red on purpose rather than
             # being discovered downstream.
             #
-            # Covers PolyShield 412538e..8cf7dda (6 commits behind master when
-            # this PR was opened, per `.github/scripts/pin_distance.py`).
-            # The one that matters here is aab3a72: scheduler.py now imports
-            # `polybedrock.schtasks_run.run_schtasks`, the helper added in
-            # 2801424. Nothing else in the range changes the import surface;
-            # the rest is the service start-type fix, autostart and the
-            # Add/Remove Programs entry (pure PolyShield), and the
-            # TokenSave Manager files. 9c8cc8b also moves PolyShield's own
-            # pin to 2801424 and adds schtasks_run to both Nuitka targets.
+            # Covers PolyShield 8cf7dda..f2ba72d: 30 commits behind master when
+            # this PR was opened (`.github/scripts/pin_distance.py`). Unlike
+            # the earlier bumps this range adds NO substrate API use: the only
+            # polybedrock-related lines it changes are PolyShield's own pin of
+            # this repository (2801424 -> 1ce539b, at all four sites), which
+            # is exactly this repository's current master. So what the bump
+            # validates is PolyShield's growth against the substrate -- the
+            # build-smoke workflow and its installer-refusal test, the
+            # settings BOM fix arriving in a built product, the PATH_STATUS
+            # query, the intelligence-lock test isolation -- not new coupling.
             #
-            # 8cf7dda is the revision that understands the overlay below. The
-            # pin test added in c4ffe71 failed every run of this job (an
-            # editable substrate under CI) until PolyShield learned to be told
-            # the overlay is deliberate -- see POLYBEDROCK_SUBSTRATE_OVERLAY in
-            # the test step. Pinning 9c8cc8b would be red for that reason.
+            # PolyShield's own CI and an on-demand build-smoke run on f2ba72d
+            # are green; this job adds the thing neither can: the suite
+            # against a PolyBedrock that is not the pinned one.
             #
-            # Expected to stay green with PolyShield's suite UNEDITED -- the
-            # extraction was behaviour-preserving, and this is where that
-            # claim gets checked against a PolyBedrock that is not the
-            # developer's editable checkout.
+            # Expected to stay green with PolyShield's suite UNEDITED, with
+            # POLYBEDROCK_SUBSTRATE_OVERLAY declaring the overlay deliberate
+            # (see the test step).
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
