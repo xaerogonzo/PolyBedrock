@@ -95,28 +95,16 @@ jobs:
             install: pip install -r requirements-ci.txt
           - name: PolyScour
             repo: xaerogonzo/PolyScour
-            ref: 302bb6d0bfbe58a82c13a396a8128f5a708ed438   # master, 2026-09-30
-            # Covers PolyScour c436a81..302bb6d: 36 commits behind master when
-            # this PR was opened (`.github/scripts/pin_distance.py`, the number
-            # docs/ECOSYSTEM_HEALTH.md says to look at). That is a long way for
-            # a pin to have drifted, and the size of it is the reason this PR
-            # exists rather than a reason to trust it: it is the amount of
-            # PolyScour this repository had not validated.
-            #
-            # Unlike the last bump, this range DOES move the import surface.
-            # Newly consumed from polybedrock, all of it already at master:
-            #   * polybedrock.schtasks_run.run_schtasks -- scheduled cleaning
-            #     (scheduling/task.py; its own tests run against real
-            #     throwaway scheduled tasks), the helper added in 2801424
-            #   * polybedrock.startup.RunEntry and extract_path -- the
-            #     view-only "everything else that starts with Windows" list,
-            #     and the 32-bit machine-wide Run key's own approval record
-            #     (the HKLM_WOW6432 hive_name)
-            #   * polybedrock.ps_run.run_ps from scheduling/task.py, for
-            #     Get-ScheduledTask verification
-            # The rest of the range -- Recycle Bin cleaning, pip/npm/Cargo
-            # cache rules, the installed-program uninstaller, the elevated
-            # request being cancellable, release 0.3.0 -- is PolyScour's own.
+            ref: edff069ac71b1047642a987d15f8ce691da173df   # master, 2026-10-07
+            # Covers PolyScour 302bb6d..edff069: 11 commits behind master when
+            # this PR was opened (`.github/scripts/pin_distance.py`). The range
+            # adds the live driver, game-mode fixes and PolyShield
+            # path-awareness. Its shipped source takes no new polybedrock
+            # imports; the new ones are in tests and tools only (test_drive.py:
+            # `polybedrock.paths`; test_ui_smoke.py and tools/uishot/scenes.py:
+            # `polybedrock.startup.RunEntry`, `polybedrock.settings`), all
+            # already at master. So this bump mostly widens what the suite
+            # exercises against the substrate. The rest is PolyScour's own.
             #
             # Known and NOT a regression: PolyScour's tests/test_uishot.py
             # golden comparison drifts on the maintainer's machine with or
